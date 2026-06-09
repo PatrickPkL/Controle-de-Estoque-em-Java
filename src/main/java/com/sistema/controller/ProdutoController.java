@@ -7,6 +7,7 @@ import com.sistema.model.Categoria;
 import com.sistema.model.Movimentacao;
 import com.sistema.model.Produto;
 import com.sistema.util.SessaoUsuario;
+import com.sistema.view.LoginView;
 import com.sistema.view.TelaPrincipalView;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -50,6 +51,7 @@ public class ProdutoController {
     /** Registra todos os listeners de botões da tela principal. */
     private void initListeners() {
         view.getBtnBuscar().addActionListener(e -> buscarProdutos());
+        view.getTxtBuscaField().addActionListener(e -> buscarProdutos());
         view.getBtnCadastrar().addActionListener(e -> salvarProduto(true));
         view.getBtnAtualizar().addActionListener(e -> salvarProduto(false));
         view.getBtnExcluir().addActionListener(e -> excluirProduto());
@@ -239,6 +241,17 @@ public class ProdutoController {
      * Atualiza automaticamente o estoque e o histórico.
      */
     private void registrarMovimentacao(Movimentacao.TipoMovimentacao tipo) {
+        if (!SessaoUsuario.isLogado()) {
+            JOptionPane.showMessageDialog(view, "Sessão expirada! Faça login novamente.", "Erro", JOptionPane.ERROR_MESSAGE);
+            view.dispose();
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                LoginView login = new LoginView();
+                new LoginController(login);
+                login.setVisible(true);
+            });
+            return;
+        }
+
         int row = view.getTableProdutos().getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(view, "Selecione um produto na tabela de Produtos primeiro!");

@@ -138,7 +138,8 @@ public class ProdutoDAO {
 
     /** Mapeia uma linha do ResultSet para um objeto {@link Produto}. */
     private Produto mapResultSetToProduto(ResultSet rs) throws SQLException {
-        Categoria cat = new Categoria(rs.getInt("id_categoria"), rs.getString("cat_nome"));
+        String catNome = rs.getString("cat_nome");
+        Categoria cat = catNome != null ? new Categoria(rs.getInt("id_categoria"), catNome) : null;
         Usuario usu = new Usuario();
         usu.setId(rs.getInt("id_usuario_cad"));
         usu.setNomeCompleto(rs.getString("usu_nome"));

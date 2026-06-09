@@ -46,25 +46,36 @@ public class CadastroUsuarioController {
     private void cadastrar() {
         String login = view.getNovoLogin();
         String senha = view.getNovaSenha();
+        String confirmar = view.getConfirmarSenha();
 
-        if (login.isEmpty() || senha.isEmpty()) {
-            JOptionPane.showMessageDialog(view, "Preencha todos os campos!");
+        if (login.isEmpty() || senha.isEmpty() || confirmar.isEmpty()) {
+            JOptionPane.showMessageDialog(view, "Preencha todos os campos!", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (senha.length() < 4) {
+            JOptionPane.showMessageDialog(view, "Senha deve ter pelo menos 4 caracteres!", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!senha.equals(confirmar)) {
+            JOptionPane.showMessageDialog(view, "As senhas não coincidem!", "Erro", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         try {
             if (usuarioDAO.buscarPorLogin(login).isPresent()) {
-                JOptionPane.showMessageDialog(view, "Este login já está em uso!");
+                JOptionPane.showMessageDialog(view, "Este login já está em uso!", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
             Usuario novo = new Usuario(null, login, HashUtil.sha256(senha), login);
             if (usuarioDAO.inserir(novo)) {
-                JOptionPane.showMessageDialog(view, "Usuário cadastrado com sucesso!");
+                JOptionPane.showMessageDialog(view, "Usuário cadastrado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                 voltarLogin();
             }
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(view, "Erro ao cadastrar usuário: " + ex.getMessage());
+            JOptionPane.showMessageDialog(view, "Erro ao cadastrar usuário: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
