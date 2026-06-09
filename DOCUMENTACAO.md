@@ -555,7 +555,7 @@ Gerencia a conexão com o banco de dados MySQL.
 | Método                       | Descrição                                                    |
 |------------------------------|--------------------------------------------------------------|
 | `getConnection()`            | Retorna conexão singleton. Cria se não existir ou estiver fechada. |
-| `initDatabase(Connection)`   | Cria tabelas e insere dados de demonstração (2 usuários, 8 categorias, 21 produtos, 15 movimentações). |
+| `initDatabase(Connection)`   | Cria tabelas e insere dados de demonstração (2 usuários, 8 categorias, 21 produtos, 140 movimentações). |
 | `close()`                    | Fecha a conexão com o banco.                                 |
 
 **Funcionamento:**
@@ -621,7 +621,7 @@ A exclusão de um produto requer confirmação explícita do usuário via diálo
 As consultas de movimentações usam LEFT JOIN para garantir que o histórico permaneça visível mesmo se o produto ou usuário associado forem removidos futuramente.
 
 ### RN-09 — Auto-Init do Banco
-Na primeira conexão, o sistema cria automaticamente as tabelas necessárias e insere um conjunto completo de dados de demonstração: 2 usuários, 8 categorias, 21 produtos variados e 15 movimentações históricas.
+Na primeira conexão, o sistema cria automaticamente as tabelas necessárias e insere um conjunto completo de dados de demonstração: 2 usuários, 8 categorias, 21 produtos variados e 140 movimentações históricas (abril a julho/2026).
 
 ### RN-10 — Usuários Padrão
 O sistema já vem com dois usuários pré-cadastrados:
@@ -731,28 +731,19 @@ INSERT IGNORE INTO categorias (nome) VALUES
 
 > O **produto #20 (Chave Philips)** possui apenas 3 unidades em estoque, servindo como caso de teste para validação de saída com estoque insuficiente.
 
-#### Movimentações Históricas (15 registros)
+#### Movimentações Históricas (140 registros — Abr a Jul/2026)
 
-```sql
-INSERT INTO movimentacoes (id_produto, tipo, quantidade, data_mov, id_usuario_mov) VALUES
-(1,  'ENTRADA', 100, '2026-06-01 08:00:00', 1),
-(2,  'ENTRADA',  60, '2026-06-01 08:05:00', 1),
-(3,  'ENTRADA',  40, '2026-06-01 08:10:00', 1),
-(5,  'ENTRADA', 500, '2026-06-01 08:15:00', 1),
-(9,  'ENTRADA', 120, '2026-06-01 08:20:00', 1),
-(12, 'ENTRADA',  80, '2026-06-01 08:25:00', 1),
-(14, 'ENTRADA', 300, '2026-06-01 08:30:00', 1),
-(18, 'ENTRADA',  80, '2026-06-01 08:35:00', 1),
-(5,  'SAIDA',   300, '2026-06-03 09:00:00', 2),
-(9,  'SAIDA',    40, '2026-06-04 10:30:00', 2),
-(14, 'SAIDA',   100, '2026-06-05 11:00:00', 2),
-(18, 'SAIDA',    30, '2026-06-06 14:00:00', 2),
-(1,  'SAIDA',    50, '2026-06-07 15:00:00', 2),
-(2,  'SAIDA',    30, '2026-06-08 09:00:00', 1),
-(12, 'SAIDA',    20, '2026-06-08 16:00:00', 2);
-```
+O histórico completo abrange 4 meses de operação simulada (abril a julho de 2026):
 
-> As entradas foram registradas pelo admin (id=1) em 01/06/2026. As saídas foram registradas entre 03/06 e 08/06/2026, majoritariamente pelo operador (id=2), representando um fluxo típico de consumo/vendas em um período de uma semana.
+| Mês   | Entradas | Saídas | Total | Destaque                                     |
+|-------|----------|--------|-------|----------------------------------------------|
+| Abril | 21       | 16     | 37    | Estoque inicial inaugurado em 01/04          |
+| Maio  | 6        | 19     | 25    | Reposições de materiais + consumo regular    |
+| Junho | 25       | 24     | 49    | Pico de operações (reabastecimento + vendas) |
+| Julho | 8        | 21     | 29    | Continuação com reposições pontuais          |
+| **Total** | **60** | **80** | **140** | — |
+
+> 60 entradas (estoque inicial + reposições) e 81 saídas (consumo/vendas), registradas por ambos os usuários (admin e operador), simulando o fluxo típico de um depósito com movimentação quase diária em dias úteis.
 
 ---
 
