@@ -59,17 +59,30 @@ public class ProdutoDAO {
     }
 
     /**
-     * Exclui um produto pelo ID.
+     * Exclui um produto pelo ID (remove movimentações vinculadas primeiro).
      * @param id Identificador do produto a ser excluído.
      * @return {@code true} se uma linha foi excluída.
      * @throws SQLException Se ocorrer erro de banco.
      */
     public boolean excluir(int id) throws SQLException {
-        String sql = "DELETE FROM produtos WHERE id = ?";
-        try (Connection conn = ConnectionUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
+        Connection conn = ConnectionUtil.getConnection();
+        try {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM movimentacoes WHERE id_produto = ?")) {
+                ps.setInt(1, id);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM produtos WHERE id = ?")) {
+                ps.setInt(1, id);
+                int rows = ps.executeUpdate();
+                conn.commit();
+                return rows > 0;
+            }
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
         }
     }
 
@@ -84,8 +97,8 @@ public class ProdutoDAO {
         List<Produto> lista = new ArrayList<>();
         String sql = "SELECT p.*, c.nome as cat_nome, u.nome_completo as usu_nome " +
                      "FROM produtos p " +
-                     "JOIN categorias c ON p.id_categoria = c.id " +
-                     "JOIN usuarios u ON p.id_usuario_cad = u.id " +
+                     "LEFT JOIN categorias c ON p.id_categoria = c.id " +
+                     "LEFT JOIN usuarios u ON p.id_usuario_cad = u.id " +
                      "ORDER BY p.nome";
         try (Connection conn = ConnectionUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -107,8 +120,8 @@ public class ProdutoDAO {
         List<Produto> lista = new ArrayList<>();
         String sql = "SELECT p.*, c.nome as cat_nome, u.nome_completo as usu_nome " +
                      "FROM produtos p " +
-                     "JOIN categorias c ON p.id_categoria = c.id " +
-                     "JOIN usuarios u ON p.id_usuario_cad = u.id " +
+                     "LEFT JOIN categorias c ON p.id_categoria = c.id " +
+                     "LEFT JOIN usuarios u ON p.id_usuario_cad = u.id " +
                      "WHERE p.nome LIKE ? " +
                      "ORDER BY p.nome";
         try (Connection conn = ConnectionUtil.getConnection();

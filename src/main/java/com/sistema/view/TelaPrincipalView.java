@@ -85,7 +85,7 @@ public class TelaPrincipalView extends javax.swing.JFrame {
             .addGap(0, 100, Short.MAX_VALUE)
         );
 
-        jLabel6.setText("jLabel6");
+        jLabel6.setText("");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 

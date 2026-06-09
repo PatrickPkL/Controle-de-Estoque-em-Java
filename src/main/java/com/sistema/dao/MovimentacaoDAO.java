@@ -91,6 +91,21 @@ public class MovimentacaoDAO {
     }
 
     /**
+     * Deleta todas as movimentações de um produto (para permitir exclusão do produto).
+     * @param idProduto ID do produto.
+     * @return Número de registros deletados.
+     * @throws SQLException Se ocorrer erro de banco.
+     */
+    public int deletarPorProduto(int idProduto) throws SQLException {
+        String sql = "DELETE FROM movimentacoes WHERE id_produto = ?";
+        try (Connection conn = ConnectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idProduto);
+            return ps.executeUpdate();
+        }
+    }
+
+    /**
      * Lista todas as movimentações do sistema (histórico geral).
      * <p>
      * Usa LEFT JOIN para garantir que o histórico apareça mesmo se

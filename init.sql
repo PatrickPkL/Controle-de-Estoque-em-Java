@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes (
     quantidade INT NOT NULL,
     data_mov DATETIME DEFAULT CURRENT_TIMESTAMP,
     id_usuario_mov INT,
-    FOREIGN KEY (id_produto) REFERENCES produtos(id),
+    FOREIGN KEY (id_produto) REFERENCES produtos(id) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario_mov) REFERENCES usuarios(id)
 );
 

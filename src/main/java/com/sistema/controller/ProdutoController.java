@@ -254,6 +254,14 @@ public class ProdutoController {
         try {
             int qtd = Integer.parseInt(qtdStr.trim());
             int idProd = (int) view.getTableProdutos().getValueAt(row, 0);
+            int estoqueAtual = (int) view.getTableProdutos().getValueAt(row, 2);
+
+            if (tipo == Movimentacao.TipoMovimentacao.SAIDA && qtd > estoqueAtual) {
+                JOptionPane.showMessageDialog(view,
+                    "Estoque insuficiente! Disponível: " + estoqueAtual + ", solicitado: " + qtd,
+                    "Saldo Insuficiente", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
             Produto p = new Produto();
             p.setId(idProd);
