@@ -37,6 +37,24 @@ public class MovimentacaoDAO {
             ? "UPDATE produtos SET quantidade = quantidade + ? WHERE id = ?"
             : "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?";
 
+        if (mov.getTipo() == Movimentacao.TipoMovimentacao.SAIDA) {
+            String checkSql = "SELECT quantidade FROM produtos WHERE id = ?";
+            try (Connection checkConn = ConnectionUtil.getConnection();
+                 PreparedStatement checkPs = checkConn.prepareStatement(checkSql)) {
+                checkPs.setInt(1, mov.getProduto().getId());
+                try (ResultSet rs = checkPs.executeQuery()) {
+                    if (rs.next()) {
+                        int estoqueAtual = rs.getInt("quantidade");
+                        if (estoqueAtual < mov.getQuantidade()) {
+                            throw new SQLException("Estoque insuficiente! Disponível: " + estoqueAtual);
+                        }
+                    } else {
+                        throw new SQLException("Produto não encontrado.");
+                    }
+                }
+            }
+        }
+
         Connection conn = ConnectionUtil.getConnection();
         try {
             conn.setAutoCommit(false);
