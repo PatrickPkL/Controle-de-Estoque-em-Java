@@ -22,6 +22,19 @@
 | 5 | jLabel6 orfao nao aparece na UI | CORRIGIDO |
 | 6 | Build sem warnings (--release 11) | CORRIGIDO |
 
+## Dados de demonstracao (mock data)
+
+O sistema agora carrega automaticamente dados de demonstracao na primeira execucao:
+
+| # | Item | Descricao |
+|---|------|-----------|
+| M1 | 2 usuarios | admin (admin) + operador (1234) |
+| M2 | 8 categorias | Eletronicos, Escritorio, Limpeza, Alimentos, Bebidas, Higiene, Roupas, Ferramentas |
+| M3 | 21 produtos | Variados, com precos e quantidades realistas |
+| M4 | Produto com estoque baixo | Chave Philips (id=20) com apenas 3 unidades — ideal para testar RN de saida |
+| M5 | 15 movimentacoes historicas | Entradas em 01/06 e saidas entre 03/06 e 08/06, registradas por ambos usuarios |
+| M6 | INSERT IGNORE | Nao sobrescreve dados se o banco ja estiver populado |
+
 ## Falta testar (runtime com MySQL rodando)
 
 | # | Item | Como testar | Resultado Esperado |

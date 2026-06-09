@@ -547,14 +547,14 @@ Gerencia a conexão com o banco de dados MySQL.
 | Método                       | Descrição                                                    |
 |------------------------------|--------------------------------------------------------------|
 | `getConnection()`            | Retorna conexão singleton. Cria se não existir ou estiver fechada. |
-| `initDatabase(Connection)`   | Cria tabelas e insere dados iniciais (admin + categorias).   |
+| `initDatabase(Connection)`   | Cria tabelas e insere dados de demonstração (2 usuários, 8 categorias, 21 produtos, 15 movimentações). |
 | `close()`                    | Fecha a conexão com o banco.                                 |
 
 **Funcionamento:**
 - Lê configurações do arquivo `db.properties` no classpath
 - Carrega o driver JDBC `com.mysql.cj.jdbc.Driver`
 - Conecta ao MySQL com URL, usuário e senha do properties
-- Na primeira conexão, executa `initDatabase` que cria as 4 tabelas (se não existirem) e insere dados seed
+- Na primeira conexão, executa `initDatabase` que cria as 4 tabelas (se não existirem) e insere dados de demonstração
 
 ---
 
@@ -613,13 +613,15 @@ A exclusão de um produto requer confirmação explícita do usuário via diálo
 As consultas de movimentações usam LEFT JOIN para garantir que o histórico permaneça visível mesmo se o produto ou usuário associado forem removidos futuramente.
 
 ### RN-09 — Auto-Init do Banco
-Na primeira conexão, o sistema cria automaticamente as tabelas necessárias e insere dados iniciais (admin:admin e 3 categorias padrão).
+Na primeira conexão, o sistema cria automaticamente as tabelas necessárias e insere um conjunto completo de dados de demonstração: 2 usuários, 8 categorias, 21 produtos variados e 15 movimentações históricas.
 
-### RN-10 — Usuário Admin Padrão
-O sistema já vem com um usuário administrador pré-cadastrado:
-- Login: `admin`
-- Senha: `admin`
-- O hash armazenado é: `8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918`
+### RN-10 — Usuários Padrão
+O sistema já vem com dois usuários pré-cadastrados:
+
+| Login      | Senha | Hash SHA-256                                                       | Nome               |
+|------------|-------|--------------------------------------------------------------------|--------------------|
+| `admin`    | admin | `8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918` | Administrador      |
+| `operador` | 1234  | `03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4` | Operador de Estoque |
 
 ---
 
@@ -673,16 +675,76 @@ CREATE TABLE IF NOT EXISTS movimentacoes (
 );
 ```
 
-### Dados Iniciais (Seed)
+### Dados de Demonstração (Mock Data)
+
+Para enriquecer a apresentação e permitir testes imediatos, o sistema carrega automaticamente um conjunto completo de dados de demonstração na primeira execução (via `INSERT IGNORE`, para não sobrescrever dados existentes).
+
+#### Usuários
 
 ```sql
-INSERT IGNORE INTO usuarios (login, senha, nome_completo)
-VALUES ('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'Administrador');
--- senha: admin
-
-INSERT IGNORE INTO categorias (nome)
-VALUES ('Eletrônicos'), ('Escritório'), ('Limpeza');
+INSERT IGNORE INTO usuarios (login, senha, nome_completo) VALUES
+('admin',    '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'Administrador'),       -- senha: admin
+('operador', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', 'Operador de Estoque'); -- senha: 1234
 ```
+
+#### Categorias
+
+```sql
+INSERT IGNORE INTO categorias (nome) VALUES
+('Eletrônicos'), ('Escritório'), ('Limpeza'), ('Alimentos'),
+('Bebidas'), ('Higiene'), ('Roupas'), ('Ferramentas');
+```
+
+#### Produtos (21 itens)
+
+| #  | Nome                    | Qtd | Preço   | Categoria      |
+|----|-------------------------|-----|---------|----------------|
+| 1  | Mouse Sem Fio           | 50  | R$ 89,90 | Eletrônicos   |
+| 2  | Teclado Mecânico        | 30  | R$ 249,90| Eletrônicos   |
+| 3  | Webcam HD 1080p         | 20  | R$ 159,50| Eletrônicos   |
+| 4  | Hub USB 4 portas        | 15  | R$ 54,90 | Eletrônicos   |
+| 5  | Papel A4 500 folhas     | 200 | R$ 29,90 | Escritório    |
+| 6  | Caneta Azul cx c/50     | 500 | R$ 1,50  | Escritório    |
+| 7  | Post-it 76x76mm         | 200 | R$ 8,90  | Escritório    |
+| 8  | Grampeador Médio        | 10  | R$ 35,50 | Escritório    |
+| 9  | Detergente Líquido      | 80  | R$ 4,50  | Limpeza       |
+| 10 | Desinfetante 500ml      | 40  | R$ 8,90  | Limpeza       |
+| 11 | Álcool 70% 1L           | 200 | R$ 6,50  | Limpeza       |
+| 12 | Café Torrado 500g       | 60  | R$ 18,90 | Alimentos     |
+| 13 | Arroz Tipo 1 5kg        | 100 | R$ 25,90 | Alimentos     |
+| 14 | Água Mineral 500ml      | 200 | R$ 2,50  | Bebidas       |
+| 15 | Refrigerante Lata       | 150 | R$ 7,90  | Bebidas       |
+| 16 | Álcool Gel 250ml        | 100 | R$ 9,90  | Higiene       |
+| 17 | Sabonete Líquido        | 80  | R$ 3,50  | Higiene       |
+| 18 | Camiseta Uniforme       | 50  | R$ 49,90 | Roupas        |
+| 19 | Jaleco Branco Tam M     | 25  | R$ 79,90 | Roupas        |
+| 20 | Chave Philips           | 3   | R$ 12,90 | Ferramentas   |
+| 21 | Multímetro Digital      | 10  | R$ 89,90 | Ferramentas   |
+
+> O **produto #20 (Chave Philips)** possui apenas 3 unidades em estoque, servindo como caso de teste para validação de saída com estoque insuficiente.
+
+#### Movimentações Históricas (15 registros)
+
+```sql
+INSERT INTO movimentacoes (id_produto, tipo, quantidade, data_mov, id_usuario_mov) VALUES
+(1,  'ENTRADA', 100, '2026-06-01 08:00:00', 1),
+(2,  'ENTRADA',  60, '2026-06-01 08:05:00', 1),
+(3,  'ENTRADA',  40, '2026-06-01 08:10:00', 1),
+(5,  'ENTRADA', 500, '2026-06-01 08:15:00', 1),
+(9,  'ENTRADA', 120, '2026-06-01 08:20:00', 1),
+(12, 'ENTRADA',  80, '2026-06-01 08:25:00', 1),
+(14, 'ENTRADA', 300, '2026-06-01 08:30:00', 1),
+(18, 'ENTRADA',  80, '2026-06-01 08:35:00', 1),
+(5,  'SAIDA',   300, '2026-06-03 09:00:00', 2),
+(9,  'SAIDA',    40, '2026-06-04 10:30:00', 2),
+(14, 'SAIDA',   100, '2026-06-05 11:00:00', 2),
+(18, 'SAIDA',    30, '2026-06-06 14:00:00', 2),
+(1,  'SAIDA',    50, '2026-06-07 15:00:00', 2),
+(2,  'SAIDA',    30, '2026-06-08 09:00:00', 1),
+(12, 'SAIDA',    20, '2026-06-08 16:00:00', 2);
+```
+
+> As entradas foram registradas pelo admin (id=1) em 01/06/2026. As saídas foram registradas entre 03/06 e 08/06/2026, majoritariamente pelo operador (id=2), representando um fluxo típico de consumo/vendas em um período de uma semana.
 
 ---
 
