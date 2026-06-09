@@ -15,7 +15,15 @@
 11. [Script SQL (init.sql)](#11-script-sql-initsql)
 12. [Configuração do Projeto (pom.xml / db.properties)](#12-configuração-do-projeto)
 13. [Fluxo de Navegação da Aplicação](#13-fluxo-de-navegação-da-aplicação)
-14. [Glossário](#14-glossário)
+14. [Diagrama de Fluxo de Dados (Data Flow)](#14-diagrama-de-fluxo-de-dados-data-flow)
+    1. [Arquitetura de Fluxo (Visão Geral)](#141-arquitetura-de-fluxo-visão-geral)
+    2. [Fluxo de Autenticação (Login)](#142-fluxo-de-autenticação-login)
+    3. [Fluxo de Cadastro de Usuário](#143-fluxo-de-cadastro-de-usuário)
+    4. [Fluxo CRUD — Produtos](#144-fluxo-crud--produtos)
+    5. [Fluxo de Movimentação](#145-fluxo-de-movimentação-entradasaída)
+    6. [Fluxo de Categorias](#146-fluxo-de-categorias)
+    7. [Mapa de Fluxo por Classe e Método](#147-mapa-de-fluxo-por-classe-e-método)
+15. [Glossário](#15-glossário)
 
 ---
 
@@ -841,7 +849,449 @@ db.pass=
 
 ---
 
-## 14. Glossário
+## 14. Diagrama de Fluxo de Dados (Data Flow)
+
+Diagrama completo do percurso dos dados através das camadas da aplicação, desde a interação do usuário na interface gráfica até a persistência no banco MySQL e o retorno da resposta.
+
+### 14.1 Arquitetura de Fluxo (Visão Geral)
+
+```
+  USUÁRIO
+     │
+     ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│  VIEW (Swing)                 Camada de Apresentação                     │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Eventos de interface (cliques, digitação, seleção de tabela)     │  │
+│  │  ↓                                                                 │  │
+│  │  Métodos "get" extraem dados dos componentes Swing                │  │
+│  │  (getLogin(), getSenha(), getTxtNome(), getTxtQuantidade(), ...)  │  │
+│  │  ↓                                                                 │  │
+│  │  Dados são passados como parâmetros para o Controller             │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  CONTROLLER                    Camada de Lógica e Orquestração           │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Valida campos obrigatórios                                       │  │
+│  │  Converte formatos (ex: vírgula → ponto no preço)                 │  │
+│  │  Aplica regras de negócio (RN-01 a RN-10)                         │  │
+│  │  Cria objetos Model com os dados validados                        │  │
+│  │  ↓                                                                │  │
+│  │  Chama métodos DAO passando os objetos Model                      │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  DAO                           Camada de Persistência                    │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Recebe objetos Model                                             │  │
+│  │  Constrói SQL (INSERT, SELECT, UPDATE, DELETE)                    │  │
+│  │  Executa via PreparedStatement / Statement                        │  │
+│  │  ↓                                                                │  │
+│  │  ConnectionUtil fornece a conexão JDBC                            │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  DATABASE                      MySQL (sistema_estoque)                   │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Executa SQL no SGBD                                              │  │
+│  │  Retorna: ResultSet (SELECT) ou int (INSERT/UPDATE/DELETE)        │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  DAO ← RESULTADO                Camada de Persistência (retorno)        │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  SELECT:   Converte ResultSet → List<Model> ou Optional<Model>    │  │
+│  │  INSERT:   Retorna id gerado (ou booleano sucesso)                │  │
+│  │  UPDATE:   Retorna int linhas afetadas                            │  │
+│  │  DELETE:   Retorna int linhas afetadas                            │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  CONTROLLER ← RESULTADO          Camada de Lógica (retorno)             │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  Processa resultado: sucesso/erro                                 │  │
+│  │  Atualiza modelos na view (recarrega tabelas, limpa campos)       │  │
+│  │  Exibe mensagens para o usuário (JOptionPane)                     │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                      │
+│                                    ▼                                      │
+│  VIEW → USUÁRIO                  Camada de Apresentação (retorno)        │
+│  ┌────────────────────────────────────────────────────────────────────┐  │
+│  │  JTable recarregada com novos dados                               │  │
+│  │  Campos limpos para nova operação                                 │  │
+│  │  Mensagem de sucesso/erro exibida                                 │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 14.2 Fluxo de Autenticação (Login)
+
+```
+  ┌──────────┐         ┌──────────────────┐        ┌──────────────┐        ┌──────────────────┐
+  │   VIEW   │         │   CONTROLLER     │        │     DAO      │        │   DATABASE       │
+  │LoginView │         │ LoginController  │        │ UsuarioDAO   │        │  MySQL           │
+  └────┬─────┘         └────────┬─────────┘        └──────┬───────┘        └────────┬─────────┘
+       │                        │                         │                         │
+       │  1. Usuário digita     │                         │                         │
+       │     login + senha      │                         │                         │
+       │  2. Clica "Entrar"     │                         │                         │
+       │                        │                         │                         │
+       │─────btnEntrar──────────►                         │                         │
+       │                        │                         │                         │
+       │                        │  3. getLogin()          │                         │
+       │◄───────String login────┤   getSenha()            │                         │
+       │                        │                         │                         │
+       │                        │  4. Valida campos       │                         │
+       │                        │     (não vazios)        │                         │
+       │                        │                         │                         │
+       │                        │  5. HashUtil.sha256()   │                         │
+       │                        │     (senha → hash)      │                         │
+       │                        │                         │                         │
+       │                        │  6. autenticar(login,   │                         │
+       │                        │     hash)               │                         │
+       │                        │─────SELECT──────────────►                         │
+       │                        │       login=? AND       │                         │
+       │                        │       senha=?           │                         │
+       │                        │                         │─────SQL QUERY──────────►│
+       │                        │                         │                         │
+       │                        │                         │◄─────ResultSet──────────│
+       │                        │◄────Optional<Usuario>───┤                         │
+       │                        │                         │                         │
+       │                        │  7. Se presente:        │                         │
+       │                        │     SessaoUsuario.set() │                         │
+       │                        │     → abrirDashboard()  │                         │
+       │                        │  8. Se vazio:           │                         │
+       │                        │     "Usuário ou senha   │                         │
+       │                        │      inválidos!"        │                         │
+       │                        │                         │                         │
+       │◄────abre TelaPrincipal─┤                         │                         │
+       │    OU JOptionPane erro │                         │                         │
+  ┌────┴─────┐         ┌────────┴─────────┐        ┌──────┴───────┐        ┌────────┴─────────┐
+  │   VIEW   │         │   CONTROLLER     │        │     DAO      │        │   DATABASE       │
+  │LoginView │         │ LoginController  │        │ UsuarioDAO   │        │  MySQL           │
+  └──────────┘         └──────────────────┘        └──────────────┘        └──────────────────┘
+```
+
+---
+
+### 14.3 Fluxo de Cadastro de Usuário
+
+```
+  ┌──────────────┐    ┌─────────────────────────┐    ┌──────────────┐    ┌──────────────────┐
+  │     VIEW     │    │      CONTROLLER         │    │     DAO      │    │   DATABASE       │
+  │CadastroUsuario│    │ CadastroUsuarioController│   │ UsuarioDAO   │    │    MySQL         │
+  └──────┬───────┘    └──────────┬──────────────┘    └──────┬───────┘    └────────┬─────────┘
+         │                       │                          │                     │
+         │ 1. Usuário preenche   │                          │                     │
+         │    login + senha      │                          │                     │
+         │ 2. Clica "Salvar"     │                          │                     │
+         │                       │                          │                     │
+         │───btnSalvarCadastro──►│                          │                     │
+         │                       │                          │                     │
+         │◄──getNovoLogin()──────┤                          │                     │
+         │◄──getNovaSenha()──────┤                          │                     │
+         │                       │                          │                     │
+         │                       │ 3. Valida campos         │                     │
+         │                       │ 4. Hash senha            │                     │
+         │                       │                          │                     │
+         │                       │ 5. buscarPorLogin()      │                     │
+         │                       │────SELECT────────────────►                     │
+         │                       │                          │───SQL QUERY────────►│
+         │                       │                          │◄───ResultSet────────│
+         │                       │◄──Optional<Usuario>──────┤                     │
+         │                       │                          │                     │
+         │                       │ 6. Se já existe:         │                     │
+         │                       │    erro "login em uso"   │                     │
+         │                       │ 7. Se não:               │                     │
+         │                       │    inserir()             │                     │
+         │                       │────INSERT────────────────►                     │
+         │                       │                          │───SQL INSERT───────►│
+         │                       │                          │◄───affectedRows─────│
+         │                       │◄──boolean sucesso────────┤                     │
+         │                       │                          │                     │
+         │◄──JOptionPane sucesso──┤                          │                     │
+         │    ou erro            │                          │                     │
+  ┌──────┴───────┐    ┌──────────┴──────────────┐    ┌──────┴───────┐    ┌────────┴─────────┐
+  │     VIEW     │    │      CONTROLLER         │    │     DAO      │    │   DATABASE       │
+  └──────────────┘    └─────────────────────────┘    └──────────────┘    └──────────────────┘
+```
+
+---
+
+### 14.4 Fluxo CRUD — Produtos
+
+#### 14.4.1 Cadastrar Produto
+
+```
+  ┌─────────────────┐    ┌──────────────────┐    ┌──────────────┐    ┌──────────────────┐
+  │     VIEW        │    │   CONTROLLER    │    │     DAO      │    │   DATABASE       │
+  │TelaPrincipalView│    │ProdutoController│    │ ProdutoDAO   │    │    MySQL         │
+  └───────┬─────────┘    └───────┬──────────┘    └──────┬───────┘    └────────┬─────────┘
+          │                      │                      │                     │
+          │ 1. Preenche nome,    │                      │                     │
+          │    qtd, preço, cat.  │                      │                     │
+          │ 2. Clica "Cadastrar" │                      │                     │
+          │                      │                      │                     │
+          │──btnCadastrar───────►│                      │                     │
+          │                      │                      │                     │
+          │◄─getTxtNome()────────┤                      │                     │
+          │◄─getTxtQuantidade()──┤                      │                     │
+          │◄─getTxtPreco()───────┤                      │                     │
+          │◄─getCbCategoria()────┤                      │                     │
+          │                      │                      │                     │
+          │                      │ 3. Valida campos     │                     │
+          │                      │    obrigatórios      │                     │
+          │                      │                      │                     │
+          │                      │ 4. Converte preço    │                     │
+          │                      │    (vírgula → ponto) │                     │
+          │                      │                      │                     │
+          │                      │ 5. Cria objeto       │                     │
+          │                      │    Produto + Categoria│                    │
+          │                      │                      │                     │
+          │                      │ 6. inserir(produto)  │                     │
+          │                      │────INSERT────────────►                     │
+          │                      │                      │───SQL INSERT───────►│
+          │                      │                      │◄───id gerado────────│
+          │                      │◄──int idProduto──────┤                     │
+          │                      │                      │                     │
+          │                      │ 7. Recarrega tabela  │                     │
+          │                      │ 8. Limpa campos      │                     │
+          │                      │                      │                     │
+          │◄─recarrega JTable────┤                      │                     │
+          │◄─JOptionPane "OK"────┤                      │                     │
+  ┌───────┴─────────┐    ┌───────┴──────────┐    ┌──────┴───────┐    ┌────────┴─────────┐
+  │     VIEW        │    │   CONTROLLER    │    │     DAO      │    │   DATABASE       │
+  └─────────────────┘    └──────────────────┘    └──────────────┘    └──────────────────┘
+```
+
+#### 14.4.2 Listar Produtos
+
+```
+  TelaPrincipalView          ProdutoController           ProdutoDAO
+         │                          │                        │
+         │  (inicialização          │                        │
+         │   ou após operação)      │                        │
+         │                          │                        │
+         │────buscarProdutos()──────►                        │
+         │                          │                        │
+         │                          │──listar()──────────────►│
+         │                          │    (ou buscarPorNome)  │
+         │                          │                        │──SELECT p.*, c.nome,
+         │                          │                        │  u.nome_completo
+         │                          │                        │  FROM produtos p
+         │                          │                        │  LEFT JOIN categorias c
+         │                          │                        │  LEFT JOIN usuarios u
+         │                          │                        │  ORDER BY p.nome
+         │                          │                        │
+         │                          │                        │──ResultSet → List<Produto>
+         │                          │◄─List<Produto>─────────┤
+         │                          │                        │
+         │                          │  Converte List<Produto>
+         │                          │  para DefaultTableModel
+         │                          │                        │
+         │◄─preenche JTable─────────┤                        │
+```
+
+#### 14.4.3 Atualizar Produto
+
+```
+  TelaPrincipalView          ProdutoController           ProdutoDAO
+         │                          │                        │
+         │ 1. Seleciona produto     │                        │
+         │    na JTable             │                        │
+         │ 2. Altera campos        │                        │
+         │ 3. Clica "Atualizar"    │                        │
+         │                          │                        │
+         │──btnAtualizar───────────►│                        │
+         │                          │                        │
+         │◄─getTxtNome()────────────┤                        │
+         │◄─getTxtQuantidade()──────┤                        │
+         │◄─getTxtPreco()───────────┤                        │
+         │◄─getCbCategoria()────────┤                        │
+         │                          │                        │
+         │                          │ 4. Valida campos      │
+         │                          │ 5. Cria Produto com   │
+         │                          │    id do selecionado  │
+         │                          │                        │
+         │                          │ 6. atualizar(produto) │
+         │                          │────UPDATE─────────────►│
+         │                          │                        │──SQL UPDATE produtos
+         │                          │                        │  SET nome=?, quantidade=?,
+         │                          │                        │  preco=?, id_categoria=?
+         │                          │                        │  WHERE id=?
+         │                          │                        │
+         │                          │◄──int linhas──────────┤
+         │                          │                        │
+         │                          │ 7. Recarrega + mensagem│
+         │◄─JOptionPane "OK"────────┤                        │
+```
+
+#### 14.4.4 Excluir Produto
+
+```
+  TelaPrincipalView          ProdutoController           ProdutoDAO          MySQL
+         │                          │                        │                  │
+         │ 1. Seleciona produto     │                        │                  │
+         │ 2. Clica "Excluir"      │                        │                  │
+         │                          │                        │                  │
+         │──btnExcluir─────────────►│                        │                  │
+         │                          │                        │                  │
+         │                          │ 3. Confirmação:        │                  │
+         │                          │    JOptionPane.        │                  │
+         │                          │    SHOW_CONFIRM_DIALOG │                  │
+         │                          │                        │                  │
+         │                          │ 4. Se sim:             │                  │
+         │                          │    excluir(idProduto)  │                  │
+         │                          │                        │                  │
+         │                          │──excluir(id)──────────►│                  │
+         │                          │                        │                  │
+         │                          │                        │ 5. conn.setAutoCommit(false)
+         │                          │                        │ 6. DELETE movimentacoes
+         │                          │                        │    WHERE id_produto=?
+         │                          │                        │──────────────────►│
+         │                          │                        │                  │
+         │                          │                        │ 7. DELETE produtos
+         │                          │                        │    WHERE id=?
+         │                          │                        │──────────────────►│
+         │                          │                        │                  │
+         │                          │                        │ 8. conn.commit()
+         │                          │                        │    ou rollback()
+         │                          │                        │                  │
+         │                          │◄──boolean sucesso──────┤                  │
+         │                          │                        │                  │
+         │                          │ 9. Recarrega listagem  │                  │
+         │◄─JOptionPane "OK"────────┤                        │                  │
+```
+
+---
+
+### 14.5 Fluxo de Movimentação (Entrada/Saída)
+
+```
+  TelaPrincipalView          ProdutoController       MovimentacaoDAO       MySQL
+         │                          │                        │                  │
+         │ 1. Seleciona produto     │                        │                  │
+         │    na aba Produtos       │                        │                  │
+         │ 2. Vai aba Mov.          │                        │                  │
+         │ 3. Digita quantidade     │                        │                  │
+         │ 4. Clica "Registrar      │                        │                  │
+         │    Entrada" ou "Saída"   │                        │                  │
+         │                          │                        │                  │
+         │──btnEntrada/btnSaida────►│                        │                  │
+         │                          │                        │                  │
+         │◄─getTxtQtdMov()──────────┤                        │                  │
+         │◄─getTableProdutos()──────┤ (linha selecionada)    │                  │
+         │                          │                        │                  │
+         │                          │ 5. VALIDAÇÕES:         │                  │
+         │                          │    - Produto           │                  │
+         │                          │      selecionado?      │                  │
+         │                          │    - Qtd > 0?          │                  │
+         │                          │                          │                  │
+         │                          │    Se SAIDA:           │                  │
+         │                          │    - qtd <=            │                  │
+         │                          │      estoqueAtual?     │                  │
+         │                          │      (RN-05)           │                  │
+         │                          │                        │                  │
+         │                          │ 6. Cria objeto         │                  │
+         │                          │    Movimentacao        │                  │
+         │                          │                        │                  │
+         │                          │ 7. registrar(mov)      │                  │
+         │                          │────registrar(mov)──────►                  │
+         │                          │                        │                  │
+         │                          │                        │──conn.setAutoCommit(false)
+         │                          │                        │                  │
+         │                          │                        │──INSERT mov       │
+         │                          │                        │  (id_produto,    │
+         │                          │                        │   tipo, qtd,     │
+         │                          │                        │   data, usuario)  │
+         │                          │                        │──────────────────►│
+         │                          │                        │                  │
+         │                          │                        │──UPDATE produtos  │
+         │                          │                        │  SET quantidade=  │
+         │                          │                        │  quantidade +/-   │
+         │                          │                        │  qtd             │
+         │                          │                        │  WHERE id=?      │
+         │                          │                        │──────────────────►│
+         │                          │                        │                  │
+         │                          │                        │──conn.commit()    │
+         │                          │                        │  (ou rollback    │
+         │                          │                        │   em erro)        │
+         │                          │                        │                  │
+         │                          │◄──boolean sucesso──────┤                  │
+         │                          │                        │                  │
+         │                          │ 8. Recarrega histórico │                  │
+         │                          │    de movimentações    │                  │
+         │                          │ 9. Recarrega tabela    │                  │
+         │                          │    de produtos         │                  │
+         │                          │    (estoque atualizado)│                  │
+         │                          │                        │                  │
+         │◄─recarrega JTable────────┤                        │                  │
+         │◄─JOptionPane "OK"────────┤                        │                  │
+```
+
+---
+
+### 14.6 Fluxo de Categorias
+
+```
+  TelaPrincipalView          ProdutoController           CategoriaDAO         MySQL
+         │                          │                        │                  │
+         │ 1. Aba Categorias        │                        │                  │
+         │ 2. Digita nome           │                        │                  │
+         │ 3. Clica "Cadastrar"     │                        │                  │
+         │                          │                        │                  │
+         │──btnCadastrarCategoria──►│                        │                  │
+         │                          │                        │                  │
+         │◄─getTxtNomeCategoria()───┤                        │                  │
+         │                          │                        │                  │
+         │                          │ 4. Valida nome         │                  │
+         │                          │    não vazio           │                  │
+         │                          │                        │                  │
+         │                          │ 5. cadastrarCategoria()│                  │
+         │                          │                        │                  │
+         │                          │──inserir(categoria)───►│                  │
+         │                          │                        │──SQL INSERT─────►│
+         │                          │                        │◄──affectedRows───│
+         │                          │◄──boolean─────────────┤                  │
+         │                          │                        │                  │
+         │                          │ 6. Recarrega combo de  │                  │
+         │                          │    categorias + tabela │                  │
+         │                          │                        │                  │
+         │                          │ 7. listar()            │                  │
+         │                          │────SELECT──────────────►                  │
+         │                          │                        │──SQL SELECT─────►│
+         │                          │                        │◄──ResultSet──────│
+         │                          │◄──List<Categoria>──────┤                  │
+         │                          │                        │                  │
+         │◄─recarrega JTable────────┤                        │                  │
+         │   + JComboBox            │                        │                  │
+         │◄─JOptionPane "OK"────────┤                        │                  │
+```
+
+---
+
+### 14.7 Mapa de Fluxo por Classe e Método
+
+| Operação              | View                     | Controller                      | DAO                           | SQL                               |
+|-----------------------|--------------------------|----------------------------------|-------------------------------|-----------------------------------|
+| Login                 | LoginView                | LoginController.autenticar()     | UsuarioDAO.autenticar()       | SELECT login, senha WHERE ...     |
+| Cadastrar Usuário     | CadastroUsuarioView      | CadastroUsuarioController.cadastrar() | UsuarioDAO.inserir()      | INSERT INTO usuarios              |
+| Listar Produtos       | TelaPrincipalView        | ProdutoController.buscarProdutos() | ProdutoDAO.listar()           | SELECT ... FROM p LEFT JOIN ...   |
+| Cadastrar Produto     | TelaPrincipalView        | ProdutoController.salvarProduto(true) | ProdutoDAO.inserir()       | INSERT INTO produtos              |
+| Atualizar Produto     | TelaPrincipalView        | ProdutoController.salvarProduto(false) | ProdutoDAO.atualizar()     | UPDATE produtos SET ... WHERE id= |
+| Excluir Produto       | TelaPrincipalView        | ProdutoController.excluirProduto() | ProdutoDAO.excluir()          | DELETE mov + DELETE produto (transação) |
+| Mov. Entrada          | TelaPrincipalView        | ProdutoController.registrarMovimentacao(ENTRADA) | MovimentacaoDAO.registrar() | INSERT mov + UPDATE produto (transação) |
+| Mov. Saída            | TelaPrincipalView        | ProdutoController.registrarMovimentacao(SAIDA) | MovimentacaoDAO.registrar()  | INSERT mov + UPDATE produto (transação) |
+| Listar Movimentações  | Tabela na aba 3          | (direto no initComponents via DefaultTableModel) | MovimentacaoDAO.listar()     | SELECT ... FROM mov LEFT JOIN ... |
+| Cadastrar Categoria   | TelaPrincipalView        | ProdutoController.cadastrarCategoria() | CategoriaDAO.inserir()       | INSERT INTO categorias            |
+| Listar Categorias     | JComboBox + JTable       | ProdutoController.buscarProdutos() (indireto) | CategoriaDAO.listar()        | SELECT * FROM categorias          |
+
+---
+
+## 15. Glossário
 
 | Termo                | Definição                                               |
 |----------------------|---------------------------------------------------------|
