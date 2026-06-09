@@ -3,7 +3,16 @@ package com.sistema.model;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+/**
+ * Modelo que representa uma movimentação de entrada ou saída de estoque.
+ * <p>
+ * Cada movimentação está vinculada a um {@link Produto}, foi registrada
+ * por um {@link Usuario} e possui um {@link TipoMovimentacao} que define
+ * se a quantidade será somada ou subtraída do estoque.
+ */
 public class Movimentacao {
+
+    /** Enum que define o tipo da movimentação: ENTRADA (soma) ou SAIDA (subtrai). */
     public enum TipoMovimentacao { ENTRADA, SAIDA }
 
     private Integer id;
@@ -13,8 +22,18 @@ public class Movimentacao {
     private LocalDateTime dataMov;
     private Usuario usuarioMov;
 
+    /** Construtor padrão. */
     public Movimentacao() {}
 
+    /**
+     * Construtor completo.
+     * @param id         Identificador único.
+     * @param produto    Produto movimentado.
+     * @param tipo       ENTRADA ou SAIDA.
+     * @param quantidade Quantidade movimentada.
+     * @param dataMov    Data/hora da movimentação.
+     * @param usuarioMov Usuário que realizou a movimentação.
+     */
     public Movimentacao(Integer id, Produto produto, TipoMovimentacao tipo, Integer quantidade, LocalDateTime dataMov, Usuario usuarioMov) {
         this.id = id;
         this.produto = produto;

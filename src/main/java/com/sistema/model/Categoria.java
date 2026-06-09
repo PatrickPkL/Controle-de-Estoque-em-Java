@@ -2,12 +2,23 @@ package com.sistema.model;
 
 import java.util.Objects;
 
+/**
+ * Modelo que representa uma categoria de produtos.
+ * <p>
+ * As categorias permitem agrupar produtos por tipo (ex.: Eletrônicos, Escritório, Limpeza).
+ */
 public class Categoria {
     private Integer id;
     private String nome;
 
+    /** Construtor padrão. */
     public Categoria() {}
 
+    /**
+     * Construtor completo.
+     * @param id   Identificador único.
+     * @param nome Nome da categoria (deve ser único no banco).
+     */
     public Categoria(Integer id, String nome) {
         this.id = id;
         this.nome = nome;

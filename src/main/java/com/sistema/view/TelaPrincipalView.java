@@ -506,58 +506,74 @@ public class TelaPrincipalView extends javax.swing.JFrame {
     private javax.swing.JTextField txtQtdMov;
     // End of variables declaration//GEN-END:variables
 
-  // --- ABA PRODUTOS ---
-  
-    // Campo de busca por nome (jTextField1) e botão Buscar (jButton1)
+  // =========================================================================
+    // MÉTODOS PONTE — ABA PRODUTOS
+    // =========================================================================
+
+    /** @return Texto digitado no campo de busca. */
     public String getTxtBusca() { return jTextField1.getText(); }
+    /** @return Botão "Buscar". */
     public javax.swing.JButton getBtnBuscar() { return jButton1; }
-    
-    // Tabela de Produtos (jTable2)
+    /** @return Tabela de produtos. */
     public javax.swing.JTable getTableProdutos() { return jTable2; }
-    
-    // Formulário inferior de cadastro de produtos
-    public String getTxtNome() { return jTextField2.getText(); }       // jTextField2 = Nome
-    public String getTxtQuantidade() { return jTextField3.getText(); } // jTextField3 = Quantidade
-    public String getTxtPreco() { return jTextField4.getText(); }      // jTextField4 = Preço
-    
+
+    /** @return Nome do produto digitado no formulário. */
+    public String getTxtNome() { return jTextField2.getText(); }
+    /** @return Quantidade digitada no formulário. */
+    public String getTxtQuantidade() { return jTextField3.getText(); }
+    /** @return Preço digitado no formulário. */
+    public String getTxtPreco() { return jTextField4.getText(); }
+
+    /** @return Nome da categoria selecionada no JComboBox. */
     public String getCategoriaSelecionada() {
         return jComboBox1.getSelectedItem() != null ? jComboBox1.getSelectedItem().toString() : "";
     }
+    /** @return JComboBox de categorias. */
     public javax.swing.JComboBox<String> getCbCategoria() { return jComboBox1; }
 
-    // Botões do CRUD de Produtos
-    public javax.swing.JButton getBtnCadastrar() { return jButton2; } // jButton2 = Cadastrar
-    public javax.swing.JButton getBtnAtualizar() { return jButton3; } // jButton3 = Atualizar
-    public javax.swing.JButton getBtnExcluir() { return jButton4; }   // jButton4 = Excluir
+    /** @return Botão "Cadastrar". */
+    public javax.swing.JButton getBtnCadastrar() { return jButton2; }
+    /** @return Botão "Atualizar". */
+    public javax.swing.JButton getBtnAtualizar() { return jButton3; }
+    /** @return Botão "Excluir". */
+    public javax.swing.JButton getBtnExcluir() { return jButton4; }
 
-    // Método utilitário para limpar os campos após salvar um produto
+    /** Limpa os campos do formulário de produto. */
     public void limparCamposProduto() {
         jTextField2.setText("");
         jTextField3.setText("");
         jTextField4.setText("");
     }
 
-    // --- ABA CATEGORIAS ---
-    
-    // Tabela de Categorias (jTable1)
+    // =========================================================================
+    // MÉTODOS PONTE — ABA CATEGORIAS
+    // =========================================================================
+
+    /** @return Tabela de categorias. */
     public javax.swing.JTable getTableCategorias() { return jTable1; }
-    
-    // Campo e Botão já nomeados por você na interface
+    /** @return Nome da nova categoria digitado. */
     public String getTxtNomeCategoria() { return txtNomeCategoria.getText(); }
+    /** @return Botão "Cadastrar Categoria". */
     public javax.swing.JButton getBtnCadastrarCategoria() { return btnCadastrarCategoria; }
-    
+
+    /** Limpa o campo de nome da categoria. */
     public void limparCamposCategoria() {
         txtNomeCategoria.setText("");
     }
 
-    // --- ABA MOVIMENTAÇÕES (HISTÓRICO) ---
-    
-    // Tabela de Histórico de Movimentações (jTable3)
+    // =========================================================================
+    // MÉTODOS PONTE — ABA MOVIMENTAÇÕES
+    // =========================================================================
+
+    /** @return Tabela de histórico de movimentações. */
     public javax.swing.JTable getTableMovimentacoes() { return jTable3; }
-    
+    /** @return Botão "Registrar Entrada". */
     public javax.swing.JButton getBtnEntrada() { return btnEntrada; }
+    /** @return Botão "Registrar Saída". */
     public javax.swing.JButton getBtnSaida() { return btnSaida; }
+    /** @return Quantidade a movimentar digitada. */
     public String getTxtQtdMov() { return txtQtdMov.getText(); }
+    /** Limpa o campo de quantidade para movimentação. */
     public void limparCampoMovimentacao() { txtQtdMov.setText(""); }
 
 

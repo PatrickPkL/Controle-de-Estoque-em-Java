@@ -8,8 +8,6 @@ import com.sistema.model.Movimentacao;
 import com.sistema.model.Produto;
 import com.sistema.util.SessaoUsuario;
 import com.sistema.view.TelaPrincipalView;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
@@ -17,14 +15,27 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Controlador principal do dashboard {@link TelaPrincipalView}.
+ * <p>
+ * Gerencia o CRUD de produtos, cadastro de categorias e registro
+ * de movimentações de entrada/saída. Atualiza as três tabelas
+ * (produtos, categorias, movimentações) e o combobox de categorias.
+ */
 public class ProdutoController {
 
     private final TelaPrincipalView view;
     private final ProdutoDAO produtoDAO;
     private final CategoriaDAO categoriaDAO;
     private final MovimentacaoDAO movDAO;
-    private List<Categoria> listaCategoriasCarregadas; // Guarda a referência das categorias em memória
+    /** Lista de categorias carregada em memória para popular o JComboBox. */
+    private List<Categoria> listaCategoriasCarregadas;
 
+    /**
+     * Conecta a View ao Controller, inicializa os DAOs, carrega os dados
+     * e ativa os listeners.
+     * @param view Instância da tela principal.
+     */
     public ProdutoController(TelaPrincipalView view) {
         this.view = view;
         this.produtoDAO = new ProdutoDAO();
@@ -36,27 +47,28 @@ public class ProdutoController {
         carregarCategoriasCombo();
     }
 
+    /** Registra todos os listeners de botões da tela principal. */
     private void initListeners() {
-        // Produtos
         view.getBtnBuscar().addActionListener(e -> buscarProdutos());
         view.getBtnCadastrar().addActionListener(e -> salvarProduto(true));
         view.getBtnAtualizar().addActionListener(e -> salvarProduto(false));
         view.getBtnExcluir().addActionListener(e -> excluirProduto());
-
-        // Categorias
         view.getBtnCadastrarCategoria().addActionListener(e -> cadastrarCategoria());
-
-        // Movimentações
         view.getBtnEntrada().addActionListener(e -> registrarMovimentacao(Movimentacao.TipoMovimentacao.ENTRADA));
         view.getBtnSaida().addActionListener(e -> registrarMovimentacao(Movimentacao.TipoMovimentacao.SAIDA));
     }
 
+    /** Recarrega as três tabelas (produtos, categorias, movimentações). */
     private void carregarTabelas() {
         carregarTabelaProdutos(null);
         carregarTabelaCategorias();
         carregarTabelaMovimentacoes();
     }
 
+    /**
+     * Popula a tabela de produtos com dados do banco.
+     * @param busca Termo de busca (opcional). Se nulo ou vazio, lista todos.
+     */
     private void carregarTabelaProdutos(String busca) {
         DefaultTableModel model = (DefaultTableModel) view.getTableProdutos().getModel();
         model.setRowCount(0);
@@ -81,6 +93,7 @@ public class ProdutoController {
         }
     }
 
+    /** Popula a tabela de categorias com todas as categorias do banco. */
     private void carregarTabelaCategorias() {
         DefaultTableModel model = (DefaultTableModel) view.getTableCategorias().getModel();
         model.setRowCount(0);
@@ -95,6 +108,7 @@ public class ProdutoController {
         }
     }
 
+    /** Popula a tabela de movimentações com todo o histórico. */
     private void carregarTabelaMovimentacoes() {
         DefaultTableModel model = (DefaultTableModel) view.getTableMovimentacoes().getModel();
         model.setRowCount(0);
@@ -115,11 +129,10 @@ public class ProdutoController {
         }
     }
 
+    /** Popula o JComboBox de categorias com os nomes do banco. */
     private void carregarCategoriasCombo() {
         try {
             listaCategoriasCarregadas = categoriaDAO.listar();
-            
-            // CORREÇÃO DO COMBOBOX: Injeta apenas Strings (nomes) para não chocar com a interface do NetBeans
             DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
             for (Categoria c : listaCategoriasCarregadas) {
                 model.addElement(c.getNome());
@@ -130,11 +143,16 @@ public class ProdutoController {
         }
     }
 
+    /** Dispara a busca de produtos pelo termo digitado. */
     private void buscarProdutos() {
         String busca = view.getTxtBusca();
         carregarTabelaProdutos(busca);
     }
 
+    /**
+     * Salva um produto (novo ou atualização).
+     * @param novo {@code true} para cadastro, {@code false} para atualização.
+     */
     private void salvarProduto(boolean novo) {
         try {
             String nome = view.getTxtNome();
@@ -155,7 +173,7 @@ public class ProdutoController {
                 JOptionPane.showMessageDialog(view, "Quantidade ou Preço inválidos!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
+
             int index = view.getCbCategoria().getSelectedIndex();
             if (index == -1) {
                 JOptionPane.showMessageDialog(view, "Selecione uma categoria!");
@@ -192,6 +210,7 @@ public class ProdutoController {
         }
     }
 
+    /** Exclui o produto selecionado na tabela (com confirmação). */
     private void excluirProduto() {
         int row = view.getTableProdutos().getSelectedRow();
         if (row == -1) {
@@ -201,7 +220,7 @@ public class ProdutoController {
 
         int id = (int) view.getTableProdutos().getValueAt(row, 0);
         int confirm = JOptionPane.showConfirmDialog(view, "Deseja realmente excluir?", "Confirmação", JOptionPane.YES_NO_OPTION);
-        
+
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 if (produtoDAO.excluir(id)) {
@@ -214,6 +233,11 @@ public class ProdutoController {
         }
     }
 
+    /**
+     * Registra uma movimentação de entrada ou saída para o produto selecionado.
+     * <p>
+     * Atualiza automaticamente o estoque e o histórico.
+     */
     private void registrarMovimentacao(Movimentacao.TipoMovimentacao tipo) {
         int row = view.getTableProdutos().getSelectedRow();
         if (row == -1) {
@@ -243,7 +267,7 @@ public class ProdutoController {
             if (movDAO.registrar(m)) {
                 JOptionPane.showMessageDialog(view, "Movimentação registrada com sucesso!");
                 view.limparCampoMovimentacao();
-                carregarTabelas(); // Atualiza estoque na tabela de produtos e o histórico
+                carregarTabelas();
             }
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(view, "Quantidade inválida!");
@@ -252,6 +276,7 @@ public class ProdutoController {
         }
     }
 
+    /** Cadastra uma nova categoria no banco e atualiza a interface. */
     private void cadastrarCategoria() {
         String nome = view.getTxtNomeCategoria();
         if (nome.isEmpty()) {

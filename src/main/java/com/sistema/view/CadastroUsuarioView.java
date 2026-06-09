@@ -157,40 +157,29 @@ public class CadastroUsuarioView extends javax.swing.JFrame {
     // MÉTODOS PONTE (GETTERS) PARA O CONTROLLER ACESSAR OS COMPONENTES DE CADASTRO
     // =========================================================================
 
-    /**
-     * Retorna o texto digitado no campo de Novo Usuário.
-     */
+    /** @return Login digitado no campo de novo usuário. */
     public String getNovoLogin() {
         return txtNovoLogin.getText() != null ? txtNovoLogin.getText().trim() : "";
     }
 
-    /**
-     * Retorna a nova senha de forma segura.
-     */
+    /** @return Senha digitada no campo de nova senha. */
     public String getNovaSenha() {
         return new String(txtNovaSenha.getPassword());
     }
 
-    /**
-     * Entrega o botão de Salvar para o Controller.
-     */
+    /** @return O botão "Salvar Cadastro" para registrar o listener. */
     public javax.swing.JButton getBtnSalvarCadastro() {
         return btnSalvarCadastro;
     }
 
-    /**
-     * Entrega o botão de Voltar para o Controller.
-     */
+    /** @return O botão "Voltar para Login" para registrar o listener. */
     public javax.swing.JButton getBtnVoltar() {
         return btnVoltar;
     }
 
-    /**
-     * Limpa os campos após um cadastro bem-sucedido.
-     */
+    /** Limpa os campos de login e senha. */
     public void limparCampos() {
         txtNovoLogin.setText("");
         txtNovaSenha.setText("");
     }
-
 }

@@ -178,37 +178,27 @@ public class LoginView extends javax.swing.JFrame {
     // MÉTODOS PONTE (GETTERS) PARA O CONTROLLER ACESSAR OS COMPONENTES DO LOGIN
     // =========================================================================
 
-    /**
-     * Retorna o texto digitado no campo de Usuário (JTextPane).
-     */
+    /** @return Login digitado no campo de usuário. */
     public String getLogin() {
         return txtLogin.getText() != null ? txtLogin.getText().trim() : "";
     }
 
-    /**
-     * Retorna a senha digitada no JPasswordField de forma segura.
-     */
+    /** @return Senha digitada no campo de senha. */
     public String getSenha() {
         return new String(txtSenha.getPassword());
     }
 
-    /**
-     * Entrega o botão de Entrar para o Controller escutar o clique.
-     */
+    /** @return O botão "Entrar" para registrar o listener de clique. */
     public javax.swing.JButton getBtnEntrar() {
         return btnEntrar;
     }
 
-    /**
-     * Entrega o botão de Cadastrar-se para o Controller escutar o clique.
-     */
+    /** @return O botão "Cadastrar-se" para registrar o listener de clique. */
     public javax.swing.JButton getBtnCriarConta() {
-        return btnCadastrarse; // Mapeia para a sua variável gerada pelo NetBeans
+        return btnCadastrarse;
     }
 
-    /**
-     * Limpa os campos após falha ou logout.
-     */
+    /** Limpa os campos de login e senha. */
     public void limparCampos() {
         txtLogin.setText("");
         txtSenha.setText("");

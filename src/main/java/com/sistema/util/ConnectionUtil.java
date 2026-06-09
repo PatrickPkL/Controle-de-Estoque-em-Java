@@ -7,9 +7,29 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+/**
+ * Utilitário de conexão com o banco de dados MySQL.
+ * <p>
+ * Gerencia uma única conexão (singleton) durante todo o ciclo de vida
+ * da aplicação. Lê as configurações do arquivo {@code db.properties}
+ * localizado em {@code src/main/resources/}.
+ * <p>
+ * <strong>Auto-initializer:</strong> Na primeira conexão, cria automaticamente
+ * as tabelas do banco (se não existirem) e insere dados iniciais
+ * (usuário admin e categorias padrão).
+ */
 public class ConnectionUtil {
     private static Connection conn;
 
+    /**
+     * Retorna a conexão ativa (única instância), criando-a se necessário.
+     * <p>
+     * A primeira chamada carrega o driver JDBC, lê as configurações,
+     * estabelece a conexão e executa {@link #initDatabase(Connection)}.
+     *
+     * @return Conexão JDBC ativa.
+     * @throws SQLException Se não conseguir carregar as configurações ou conectar.
+     */
     public static synchronized Connection getConnection() throws SQLException {
         if (conn == null || conn.isClosed()) {
             Properties props = new Properties();
@@ -35,6 +55,12 @@ public class ConnectionUtil {
         return conn;
     }
 
+    /**
+     * Cria as tabelas do banco (se não existirem) e insere dados iniciais.
+     * <p>
+     * Tabelas criadas: categorias, usuarios, produtos, movimentacoes.
+     * Dados iniciais: usuário admin (senha: admin) e 3 categorias padrão.
+     */
     private static void initDatabase(Connection conn) {
         try (Statement st = conn.createStatement()) {
             st.execute("CREATE TABLE IF NOT EXISTS categorias (id INT AUTO_INCREMENT PRIMARY KEY, nome VARCHAR(50) NOT NULL UNIQUE)");
@@ -49,10 +75,14 @@ public class ConnectionUtil {
         }
     }
 
+    /**
+     * Fecha a conexão com o banco de dados (se estiver aberta).
+     * Chamado ao encerrar a aplicação.
+     */
     public static synchronized void close() {
-        try { 
+        try {
             if (conn != null && !conn.isClosed()) {
-                conn.close(); 
+                conn.close();
             }
         } catch (Exception ignored) {}
     }

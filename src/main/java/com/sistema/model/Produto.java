@@ -3,6 +3,13 @@ package com.sistema.model;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+/**
+ * Modelo que representa um produto no estoque.
+ * <p>
+ * Cada produto pertence a uma {@link Categoria} e foi cadastrado
+ * por um {@link Usuario}. O estoque é controlado pelo campo {@code quantidade},
+ * que é alterado através de {@link Movimentacao movimentações}.
+ */
 public class Produto {
     private Integer id;
     private String nome;
@@ -11,8 +18,18 @@ public class Produto {
     private Categoria categoria;
     private Usuario usuarioCad;
 
+    /** Construtor padrão. */
     public Produto() {}
 
+    /**
+     * Construtor completo.
+     * @param id         Identificador único.
+     * @param nome       Nome do produto.
+     * @param quantidade Quantidade em estoque.
+     * @param preco      Preço unitário.
+     * @param categoria  Categoria à qual pertence.
+     * @param usuarioCad Usuário que cadastrou o produto.
+     */
     public Produto(Integer id, String nome, Integer quantidade, BigDecimal preco, Categoria categoria, Usuario usuarioCad) {
         this.id = id;
         this.nome = nome;

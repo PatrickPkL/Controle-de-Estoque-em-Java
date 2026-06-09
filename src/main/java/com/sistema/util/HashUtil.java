@@ -1,9 +1,22 @@
 package com.sistema.util;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
+/**
+ * Utilitário para hash de senhas usando o algoritmo SHA-256.
+ * <p>
+ * As senhas nunca são armazenadas em texto puro no banco de dados.
+ * Sempre que um usuário faz login ou cadastra uma nova senha,
+ * o hash SHA-256 é calculado e armazenado.
+ */
 public class HashUtil {
+
+    /**
+     * Gera o hash SHA-256 de uma string.
+     * @param base Texto a ser hasheado (ex.: senha digitada pelo usuário).
+     * @return String hexadecimal de 64 caracteres representando o hash.
+     * @throws RuntimeException Se o algoritmo não estiver disponível.
+     */
     public static String sha256(String base) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
